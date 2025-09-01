@@ -1,4 +1,3 @@
-
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type { Chat } from '@google/genai';
 import { ai, createChatSession, generateImage, generateVideo, getVideosOperation } from '../services/geminiService';
@@ -132,6 +131,7 @@ export const useChat = (
           }
 
           const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+          // FIX: Per guidelines, using process.env.API_KEY to fetch video content.
           if (downloadLink && process.env.API_KEY) {
             const videoResponse = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
             const videoBlob = await videoResponse.blob();

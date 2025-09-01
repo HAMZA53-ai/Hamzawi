@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
 import { MessageHistory } from './components/MessageHistory';
@@ -116,7 +115,7 @@ const App: React.FC = () => {
   };
   
   return (
-    <div className={`h-screen text-[var(--text-color)] transition-colors duration-500 flex`}>
+    <div className={`h-screen text-[var(--text-color)] transition-colors duration-500 flex font-sans`}>
       {isWelcomeModalOpen && <WelcomeModal onClose={handleWelcomeModalClose} />}
       
       <Sidebar 

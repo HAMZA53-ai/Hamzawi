@@ -125,7 +125,8 @@ export const useChat = (
         if (operation.done) {
           // FIX: Property 'error' does not exist on type 'GenerateVideosResponse'. The error object is a property of the operation itself. Check for `operation.error` before accessing `operation.response`.
           if (operation.error) {
-            throw new Error(operation.error.message || 'Video generation failed with an unknown error.');
+            // FIX: Ensure the argument to `new Error` is always a string to prevent type errors.
+            throw new Error(String(operation.error.message ?? 'Video generation failed with an unknown error.'));
           }
 
           const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;

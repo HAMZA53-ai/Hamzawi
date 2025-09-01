@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from 'react';
 import type { ChatMessage, LoadingState, Persona } from '../types';
 import type { AppMode } from '../App';
@@ -94,7 +93,7 @@ export const MessageHistory: React.FC<MessageHistoryProps> = ({ messages, loadin
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loadingState]);
 
-  const showTypingIndicator = loadingState === 'LOADING' || loadingState === 'STREAMING';
+  const showTypingIndicator = loadingState === 'LOADING';
 
   return (
     <div className="flex-1 overflow-y-auto p-4">
@@ -102,8 +101,13 @@ export const MessageHistory: React.FC<MessageHistoryProps> = ({ messages, loadin
         {messages.length === 0 && loadingState === 'IDLE' && (
           <WelcomeMessage mode={mode} persona={persona} />
         )}
-        {messages.map((msg) => (
-          <ChatMessageComponent key={msg.id} message={msg} />
+        {messages.map((msg, index) => (
+          <ChatMessageComponent 
+            key={msg.id} 
+            message={msg}
+            isLastMessage={index === messages.length -1}
+            loadingState={loadingState}
+          />
         ))}
         {showTypingIndicator && <TypingIndicator mode={mode} />}
         <div ref={messagesEndRef} />

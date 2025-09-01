@@ -1,8 +1,7 @@
-
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import type { ChatMessage, GroundingChunk } from '../types';
+import type { ChatMessage, GroundingChunk, LoadingState, Persona } from '../types';
 import { Role } from '../types';
-import { UserIcon, CopyIcon, CheckIcon, SearchIcon, CodeIcon, ExternalLinkIcon, SpeakerOnIcon, SpeakerOffIcon } from './IconComponents';
+import { UserIcon, CopyIcon, CheckIcon, SearchIcon, CodeIcon, ExternalLinkIcon, SpeakerOnIcon, SpeakerOffIcon, SparklesIcon } from './IconComponents';
 import { BrandLogo } from './BrandLogo';
 
 // --- Inlined Hook for Text-to-Speech ---
@@ -49,6 +48,34 @@ const useTextToSpeech = () => {
 };
 
 // --- Sub-Components ---
+
+const CodeBlock: React.FC<{ language: string, code: string }> = ({ language, code }) => {
+    const [copied, setCopied] = useState(false);
+    
+    const handleCopy = useCallback(() => {
+        navigator.clipboard.writeText(code).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }).catch(err => console.error('Failed to copy code: ', err));
+    }, [code]);
+
+    return (
+        <div className="mt-2 border border-gray-700 rounded-lg overflow-hidden bg-gray-900 text-start" dir="ltr">
+            <div className="bg-gray-800 px-3 py-1.5 flex justify-between items-center text-xs text-gray-400">
+                <span>{language || 'code'}</span>
+                <button onClick={handleCopy} className="px-2 py-1 rounded hover:bg-gray-700 transition-colors flex items-center gap-1.5 text-gray-300">
+                    {copied ? <><CheckIcon className="w-4 h-4 text-green-400"/> Copied</> : <><CopyIcon className="w-4 h-4"/> Copy</>}
+                </button>
+            </div>
+            <div className="max-h-96 overflow-auto p-3">
+                <pre className="whitespace-pre-wrap text-sm font-mono text-gray-300">
+                    <code>{code}</code>
+                </pre>
+            </div>
+        </div>
+    );
+};
+
 
 const HamzawyCodeBlock: React.FC<{ htmlContent: string }> = ({ htmlContent }) => {
   const [showPreview, setShowPreview] = useState(false);
@@ -142,6 +169,23 @@ const GroundingAttribution: React.FC<{ metadata: GroundingChunk[] }> = ({ metada
   );
 };
 
+const PersonaBadge: React.FC<{ persona: Persona }> = ({ persona }) => {
+    const badgeMap: Partial<Record<Persona, { text: string; icon: React.ReactNode; className: string }>> = {
+        'GPT': { text: 'رد رسمي', icon: <CheckIcon className="w-3 h-3"/>, className: 'bg-emerald-900/80 text-emerald-300'},
+        'CLAUDE': { text: 'مفيد وآمن', icon: <CheckIcon className="w-3 h-3"/>, className: 'bg-orange-900/80 text-orange-300'},
+        'TEACHER': { text: 'نقطة تعليمية', icon: <SparklesIcon className="w-3 h-3"/>, className: 'bg-yellow-900/80 text-yellow-300'},
+    };
+    const badge = badgeMap[persona];
+    if (!badge) return null;
+
+    return (
+        <div className={`absolute -top-3 right-3 text-xs flex items-center gap-1 px-2 py-0.5 rounded-full backdrop-blur-md ${badge.className}`}>
+            {badge.icon}
+            <span>{badge.text}</span>
+        </div>
+    );
+};
+
 
 // --- Main Component ---
 
@@ -150,13 +194,43 @@ const extractHtmlContent = (text: string): string | null => {
     return match ? match[1] : null;
 };
 
-export const ChatMessageComponent: React.FC<{ message: ChatMessage }> = ({ message }) => {
+export const ChatMessageComponent: React.FC<{ message: ChatMessage; isLastMessage: boolean; loadingState: LoadingState; }> = ({ message, isLastMessage, loadingState }) => {
   const [copied, setCopied] = useState(false);
   const { isSpeaking, speak, cancel } = useTextToSpeech();
   const isUserModel = message.role === Role.MODEL;
   
-  const textContent = message.parts.map(part => part.text || '').join('\n');
+  const textContent = message.parts.map(part => part.text || '').join('');
+  const isStreaming = isLastMessage && isUserModel && loadingState === 'STREAMING';
+
   const htmlContent = useMemo(() => (isUserModel && message.persona === 'HAMZAWY_CODE') ? extractHtmlContent(textContent) : null, [textContent, isUserModel, message.persona]);
+
+  const contentParts = useMemo(() => {
+    const parts: { type: 'text' | 'code'; content: string; language?: string }[] = [];
+    if (!textContent) return parts;
+
+    let lastIndex = 0;
+    const regex = /```(\w*)\n([\s\S]*?)\n```/g;
+    let match;
+
+    while ((match = regex.exec(textContent)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({ type: 'text', content: textContent.substring(lastIndex, match.index) });
+      }
+      parts.push({ type: 'code', language: match[1], content: match[2].trim() });
+      lastIndex = match.index + match[0].length;
+    }
+
+    if (lastIndex < textContent.length) {
+      parts.push({ type: 'text', content: textContent.substring(lastIndex) });
+    }
+    
+    if (parts.length === 0 && textContent) {
+        parts.push({ type: 'text', content: textContent });
+    }
+
+    return parts;
+  }, [textContent]);
+
 
   const handleCopy = (contentToCopy: string) => {
     navigator.clipboard.writeText(contentToCopy).then(() => {
@@ -179,20 +253,13 @@ export const ChatMessageComponent: React.FC<{ message: ChatMessage }> = ({ messa
   const modelBubbleClasses = 'bg-gray-800/50 backdrop-blur-md border border-gray-700/50 text-gray-200';
   const bubbleRadiusVar = isUserModel ? '--bubble-radius-model' : '--bubble-radius-user';
 
-  return (
-    <div className={`flex items-end gap-3 my-4 group ${!isUserModel ? 'flex-row-reverse' : ''}`}>
-      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center self-start mt-1 ${isUserModel ? 'bg-gray-700' : 'bg-[var(--user-message-bg)]'}`}>
-        {isUserModel ? <BrandLogo className="w-5 h-5" /> : <UserIcon className="w-5 h-5 text-white" />}
-      </div>
-      <div 
-        className={`relative max-w-2xl w-fit px-4 py-3 shadow-md ${isUserModel ? modelBubbleClasses : userBubbleClasses}`}
-        style={{ borderRadius: `var(${bubbleRadiusVar})` }}
-      >
-        
-        {htmlContent ? (
-          <HamzawyCodeBlock htmlContent={htmlContent} />
-        ) : (
-          <>
+  const renderMessageContent = () => {
+    if (htmlContent) {
+        return <HamzawyCodeBlock htmlContent={htmlContent} />;
+    }
+
+    return (
+        <>
             {message.parts.map((part, index) => (
                 <div key={index}>
                     {part.image && (
@@ -209,34 +276,59 @@ export const ChatMessageComponent: React.FC<{ message: ChatMessage }> = ({ messa
                             className="rounded-lg max-w-sm w-full object-contain mb-2"
                             />
                     )}
-                    {part.text && (
-                       <div className="whitespace-pre-wrap leading-relaxed" dangerouslySetInnerHTML={{ __html: part.text }} />
-                    )}
                 </div>
             ))}
+            {contentParts.map((part, index) => {
+                if (part.type === 'code') {
+                    return <CodeBlock key={index} language={part.language ?? ''} code={part.content} />;
+                }
+                const isLastTextPart = index === contentParts.length - 1 && part.type === 'text';
+                return (
+                    <div
+                        key={index}
+                        className="whitespace-pre-wrap leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: part.content + (isStreaming && isLastTextPart ? '<span class="blinking-cursor"></span>' : '') }}
+                    />
+                );
+            })}
+        </>
+    );
+  };
 
-            {isUserModel && textContent && (
-                 <div className="absolute top-0 -left-14 flex flex-col gap-1 items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <button 
-                        onClick={() => handleCopy(textContent)}
-                        className="p-1.5 rounded-full bg-gray-700/80 text-gray-400 hover:bg-gray-600 hover:text-white"
-                        aria-label={copied ? "تم النسخ" : "نسخ النص"}
-                    >
-                        {copied ? <CheckIcon className="w-4 h-4 text-green-400" /> : <CopyIcon className="w-4 h-4" />}
-                    </button>
-                    <button 
-                        onClick={() => handleSpeak(textContent)}
-                        className="p-1.5 rounded-full bg-gray-700/80 text-gray-400 hover:bg-gray-600 hover:text-white"
-                        aria-label={isSpeaking ? "إيقاف الصوت" : "تشغيل الصوت"}
-                    >
-                        {isSpeaking ? <SpeakerOffIcon className="w-4 h-4 text-red-400" /> : <SpeakerOnIcon className="w-4 h-4" />}
-                    </button>
-                 </div>
-            )}
+
+  return (
+    <div className={`flex items-end gap-3 my-4 group ${!isUserModel ? 'flex-row-reverse' : ''}`}>
+      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center self-start mt-1 ${isUserModel ? 'bg-gray-700' : 'bg-[var(--user-message-bg)]'}`}>
+        {isUserModel ? <BrandLogo className="w-5 h-5" /> : <UserIcon className="w-5 h-5 text-white" />}
+      </div>
+      <div 
+        className={`relative max-w-2xl w-fit px-4 py-3 shadow-md ${isUserModel ? modelBubbleClasses : userBubbleClasses}`}
+        style={{ borderRadius: `var(${bubbleRadiusVar})` }}
+      >
+        {isUserModel && <PersonaBadge persona={message.persona} />}
+        
+        {renderMessageContent()}
             
-            <GroundingAttribution metadata={message.groundingMetadata ?? []} />
-          </>
+        {isUserModel && textContent && !isStreaming && (
+             <div className="absolute top-0 -left-14 flex flex-col gap-1 items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <button 
+                    onClick={() => handleCopy(textContent)}
+                    className="p-1.5 rounded-full bg-gray-700/80 text-gray-400 hover:bg-gray-600 hover:text-white"
+                    aria-label={copied ? "تم النسخ" : "نسخ النص"}
+                >
+                    {copied ? <CheckIcon className="w-4 h-4 text-green-400" /> : <CopyIcon className="w-4 h-4" />}
+                </button>
+                <button 
+                    onClick={() => handleSpeak(textContent)}
+                    className="p-1.5 rounded-full bg-gray-700/80 text-gray-400 hover:bg-gray-600 hover:text-white"
+                    aria-label={isSpeaking ? "إيقاف الصوت" : "تشغيل الصوت"}
+                >
+                    {isSpeaking ? <SpeakerOffIcon className="w-4 h-4 text-red-400" /> : <SpeakerOnIcon className="w-4 h-4" />}
+                </button>
+             </div>
         )}
+        
+        <GroundingAttribution metadata={message.groundingMetadata ?? []} />
       </div>
     </div>
   );

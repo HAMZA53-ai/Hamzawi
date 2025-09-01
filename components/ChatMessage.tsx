@@ -302,7 +302,7 @@ export const ChatMessageComponent: React.FC<{ message: ChatMessage; isLastMessag
         {isUserModel ? <BrandLogo className="w-5 h-5" /> : <UserIcon className="w-5 h-5 text-white" />}
       </div>
       <div 
-        className={`relative max-w-2xl w-fit px-4 py-3 shadow-md ${isUserModel ? modelBubbleClasses : userBubbleClasses}`}
+        className={`relative max-w-2xl w-fit px-4 py-3 pb-8 shadow-md ${isUserModel ? modelBubbleClasses : userBubbleClasses}`}
         style={{ borderRadius: `var(${bubbleRadiusVar})` }}
       >
         {isUserModel && <PersonaBadge persona={message.persona} />}
@@ -310,17 +310,17 @@ export const ChatMessageComponent: React.FC<{ message: ChatMessage; isLastMessag
         {renderMessageContent()}
             
         {isUserModel && textContent && !isStreaming && (
-             <div className="absolute top-0 -left-14 flex flex-col gap-1 items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+             <div className="absolute bottom-2 left-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <button 
                     onClick={() => handleCopy(textContent)}
-                    className="p-1.5 rounded-full bg-gray-700/80 text-gray-400 hover:bg-gray-600 hover:text-white"
+                    className="p-1 rounded-full bg-gray-900/50 text-gray-400 hover:bg-gray-700/80 hover:text-white backdrop-blur-sm"
                     aria-label={copied ? "تم النسخ" : "نسخ النص"}
                 >
                     {copied ? <CheckIcon className="w-4 h-4 text-green-400" /> : <CopyIcon className="w-4 h-4" />}
                 </button>
                 <button 
                     onClick={() => handleSpeak(textContent)}
-                    className="p-1.5 rounded-full bg-gray-700/80 text-gray-400 hover:bg-gray-600 hover:text-white"
+                    className="p-1 rounded-full bg-gray-900/50 text-gray-400 hover:bg-gray-700/80 hover:text-white backdrop-blur-sm"
                     aria-label={isSpeaking ? "إيقاف الصوت" : "تشغيل الصوت"}
                 >
                     {isSpeaking ? <SpeakerOffIcon className="w-4 h-4 text-red-400" /> : <SpeakerOnIcon className="w-4 h-4" />}

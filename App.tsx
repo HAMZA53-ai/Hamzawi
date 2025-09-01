@@ -45,6 +45,9 @@ const App: React.FC = () => {
 
   const handleWelcomeModalClose = () => {
     setIsWelcomeModalOpen(false);
+    if (sessions.length === 0) {
+      createNewSession(persona);
+    }
   };
 
   const toggleSidebar = useCallback(() => {

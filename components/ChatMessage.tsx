@@ -259,7 +259,7 @@ export const ChatMessageComponent: React.FC<{ message: ChatMessage; isLastMessag
     }
 
     return (
-        <>
+        <div className="whitespace-pre-wrap leading-relaxed">
             {message.parts.map((part, index) => (
                 <div key={index}>
                     {part.image && (
@@ -282,16 +282,14 @@ export const ChatMessageComponent: React.FC<{ message: ChatMessage; isLastMessag
                 if (part.type === 'code') {
                     return <CodeBlock key={index} language={part.language ?? ''} code={part.content} />;
                 }
-                const isLastTextPart = index === contentParts.length - 1 && part.type === 'text';
+                // Render text content using a span to allow for more efficient updates.
+                // The blinking cursor is now a separate element.
                 return (
-                    <div
-                        key={index}
-                        className="whitespace-pre-wrap leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: part.content + (isStreaming && isLastTextPart ? '<span class="blinking-cursor"></span>' : '') }}
-                    />
+                    <span key={index} dangerouslySetInnerHTML={{ __html: part.content }}/>
                 );
             })}
-        </>
+            {isStreaming && <span className="blinking-cursor"></span>}
+        </div>
     );
   };
 
@@ -302,7 +300,7 @@ export const ChatMessageComponent: React.FC<{ message: ChatMessage; isLastMessag
         {isUserModel ? <BrandLogo className="w-5 h-5" /> : <UserIcon className="w-5 h-5 text-white" />}
       </div>
       <div 
-        className={`relative max-w-2xl w-fit px-4 py-3 pb-8 shadow-md ${isUserModel ? modelBubbleClasses : userBubbleClasses}`}
+        className={`relative max-w-[90%] sm:max-w-2xl w-fit px-4 py-3 pb-8 shadow-md ${isUserModel ? modelBubbleClasses : userBubbleClasses}`}
         style={{ borderRadius: `var(${bubbleRadiusVar})` }}
       >
         {isUserModel && <PersonaBadge persona={message.persona} />}

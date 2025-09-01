@@ -22,7 +22,7 @@ const Feature: React.FC<{ icon: React.ReactNode; title: string; description: str
 export const WelcomeModal: React.FC<WelcomeModalProps> = ({ onClose }) => {
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 border border-gray-700 rounded-2xl max-w-lg w-full p-8 shadow-2xl animate-fade-in-up">
+      <div className="bg-gray-800 border border-gray-700 rounded-2xl max-w-lg w-full p-8 shadow-2xl animate-fade-in-up max-h-[90vh] overflow-y-auto">
         <div className="flex flex-col items-center text-center">
             <BrandLogo className="w-12 h-12 text-purple-400 mb-4" />
             <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 mb-2">

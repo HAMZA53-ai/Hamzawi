@@ -38,6 +38,14 @@ const App: React.FC = () => {
   }, [activeSession]);
 
   useEffect(() => {
+    // Dynamically update the body class for theming to fix the black screen issue.
+    const themeClass = `theme-${persona.toLowerCase().replace('_', '-')}`;
+    const themes = ['gemini', 'gpt', 'deepseek', 'claude', 'hamzawy-code', 'teacher'].map(t => `theme-${t}`);
+    document.body.classList.remove(...themes);
+    document.body.classList.add(themeClass);
+  }, [persona]);
+
+  useEffect(() => {
     if (window.innerWidth < 768) {
       setIsSidebarOpen(false);
     }
@@ -105,7 +113,7 @@ const App: React.FC = () => {
   };
   
   return (
-    <div className={`theme-${persona.toLowerCase().replace('_', '-')} h-screen bg-[var(--bg-color)] text-[var(--text-color)] transition-colors duration-500 flex`}>
+    <div className={`h-screen text-[var(--text-color)] transition-colors duration-500 flex`}>
       {isWelcomeModalOpen && <WelcomeModal onClose={handleWelcomeModalClose} />}
       
       <Sidebar 

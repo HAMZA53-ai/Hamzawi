@@ -150,7 +150,7 @@ const GroundingAttribution: React.FC<{ metadata: GroundingChunk[] }> = ({ metada
     <div className="mt-3 pt-3 border-t border-gray-700/50">
       <h4 className="text-xs font-bold text-gray-400 flex items-center gap-2 mb-2">
         <SearchIcon className="w-4 h-4"/>
-        <span>المصادر من بحث Google</span>
+        <span>المصادر من بحث المبرمج حمزة محمد سعيد</span>
       </h4>
       <div className="flex flex-wrap gap-2">
         {metadata.map((chunk, index) => (

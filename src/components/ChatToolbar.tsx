@@ -49,7 +49,7 @@ export const ChatToolbar: React.FC<ChatToolbarProps> = ({ isSearchEnabled, onTog
                 id="google-search-toggle"
                 checked={isSearchEnabled}
                 onChange={onToggleSearch}
-                label="بحث Google"
+                label="بحث المبرمج حمزة محمد سعيد"
                 icon={<SearchIcon className="w-4 h-4 text-blue-300"/>}
             />
         </div>

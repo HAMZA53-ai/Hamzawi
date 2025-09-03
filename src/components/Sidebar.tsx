@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrandLogo } from './BrandLogo';
 import { PlusIcon, ChatIcon, ImageIcon, TrashIcon, VideoIcon } from './IconComponents';
+import { UserSettingsPopover } from './UserSettingsPopover';
 import type { ChatSession } from '../types';
 import type { AppMode } from '../App';
 
@@ -13,6 +14,10 @@ interface SidebarProps {
     isOpen: boolean;
     appMode: AppMode;
     onSetAppMode: (mode: AppMode) => void;
+    userName: string | null;
+    setUserName: (name: string) => void;
+    notificationsEnabled: boolean;
+    setNotificationsEnabled: (enabled: boolean) => Promise<boolean>;
 }
 
 const ChatHistoryItem: React.FC<{ session: ChatSession; active: boolean; onSelect: () => void; onDelete: (e: React.MouseEvent) => void; }> = ({ session, active, onSelect, onDelete }) => (
@@ -51,15 +56,18 @@ const ModeSwitcher: React.FC<{ appMode: AppMode, onSetAppMode: (mode: AppMode) =
 );
 
 
-export const Sidebar: React.FC<SidebarProps> = ({ onNewChat, sessions, activeSessionId, onSelectChat, onDeleteChat, isOpen, appMode, onSetAppMode }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ 
+    onNewChat, sessions, activeSessionId, onSelectChat, onDeleteChat, isOpen, appMode, onSetAppMode,
+    userName, setUserName, notificationsEnabled, setNotificationsEnabled 
+}) => {
     return (
         <aside className={`
             bg-gray-900/70 backdrop-blur-lg border-s h-screen flex flex-col flex-shrink-0 overflow-hidden
             fixed md:relative top-0 bottom-0 z-40 
             transition-all duration-300 ease-in-out
             ${isOpen 
-                ? 'w-64 p-3 border-[var(--border-color)] translate-x-0' 
-                : 'w-0 p-0 border-transparent translate-x-full md:translate-x-0'
+                ? 'w-64 p-3 border-[var(--border-color)]' 
+                : 'w-0 p-0 border-transparent -translate-x-full'
             }
         `}>
              <div className="flex flex-col flex-1 overflow-hidden min-w-[14.5rem]">
@@ -91,6 +99,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewChat, sessions, activeSes
                             onDelete={(e) => { e.stopPropagation(); onDeleteChat(session.id); }}
                         />
                     ))}
+                </div>
+
+                <div className="flex-shrink-0 pt-3 mt-2 border-t border-[var(--border-color)] flex justify-between items-center">
+                    <p className="text-sm text-gray-400 px-2 truncate">
+                        {userName ? `أهلاً, ${userName}` : 'مستخدم زائر'}
+                    </p>
+                    <UserSettingsPopover
+                        userName={userName}
+                        setUserName={setUserName}
+                        notificationsEnabled={notificationsEnabled}
+                        setNotificationsEnabled={setNotificationsEnabled}
+                    />
                 </div>
             </div>
         </aside>

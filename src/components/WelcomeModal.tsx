@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrandLogo } from './BrandLogo';
 import { ChatIcon, ImageIcon, VideoIcon } from './IconComponents';
 
 interface WelcomeModalProps {
   onClose: () => void;
+  userName: string | null;
+  onNameChange: (name: string) => void;
 }
 
 const Feature: React.FC<{ icon: React.ReactNode; title: string; description: string }> = ({ icon, title, description }) => (
@@ -19,7 +21,14 @@ const Feature: React.FC<{ icon: React.ReactNode; title: string; description: str
 );
 
 
-export const WelcomeModal: React.FC<WelcomeModalProps> = ({ onClose }) => {
+export const WelcomeModal: React.FC<WelcomeModalProps> = ({ onClose, userName, onNameChange }) => {
+  const [name, setName] = useState(userName || '');
+
+  const handleClose = () => {
+    onNameChange(name);
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-gray-800 border border-gray-700 rounded-2xl max-w-lg w-full p-8 shadow-2xl animate-fade-in-up max-h-[90vh] overflow-y-auto">
@@ -39,21 +48,33 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ onClose }) => {
                 <Feature icon={<ImageIcon className="w-5 h-5"/>} title="توليد الصور" description="حوّل أفكارك إلى صور إبداعية بمجرد وصفها." />
                 <Feature icon={<VideoIcon className="w-5 h-5"/>} title="توليد الفيديو" description="أنشئ مقاطع فيديو فريدة من النصوص أو الصور." />
             </div>
+
+            <div className="w-full text-start mb-6">
+                <label htmlFor="user-name-welcome" className="block text-sm font-medium text-gray-300 mb-2">ما هو اسمك؟ (اختياري)</label>
+                <input
+                    type="text"
+                    id="user-name-welcome"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="أدخل اسمك..."
+                    className="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5"
+                />
+            </div>
             
             <div className="w-full mb-6 space-y-4 text-start">
                 <h2 className="font-bold text-white text-center mb-4">نود معرفة رأيك بسرعة!</h2>
                 <div>
                     <label htmlFor="survey-source" className="block text-sm font-medium text-gray-300 mb-2">من أين سمعت عنا؟</label>
                     <select id="survey-source" name="survey-source" className="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5">
-                        <option selected>اختر واحداً...</option>
+                        <option>اختر واحداً...</option>
                         <option value="social">مواقع التواصل الاجتماعي</option>
                         <option value="friend">صديق</option>
-                        <option value="search">محرك البحث (Google, etc.)</option>
+                        <option value="search">محرك بحث المبرمج حمزة محمد سعيد</option>
                         <option value="other">آخر</option>
                     </select>
                 </div>
                  <div>
-                    <label htmlFor="survey-usage" className="block text-sm font-medium text-gray-300 mb-2">ما هو استخدامك الأساسي للدردشة؟</label>
+                    <label htmlFor="survey-usage" className="block text-sm font-medium text-gray-300 mb-2">ما هو استخدامك الأساسي للدرشة؟</label>
                     <select id="survey-usage" name="survey-usage" className="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5">
                         <option selected>اختر واحداً...</option>
                         <option value="coding">البرمجة والمساعدة التقنية</option>
@@ -78,13 +99,13 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ onClose }) => {
                         <option value="personas">شخصيات الذكاء الاصطناعي المتعددة</option>
                         <option value="image">توليد الصور</option>
                         <option value="video">توليد الفيديو</option>
-                        <option value="search">البحث العميق مع Google</option>
+                        <option value="search">البحث العميق مع المبرمج حمزة محمد سعيد</option>
                     </select>
                 </div>
             </div>
             
             <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700 transition-all focus:ring-4 focus:ring-purple-500/50 mt-4"
             >
                 ابدأ الآن

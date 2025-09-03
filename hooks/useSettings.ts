@@ -1,4 +1,3 @@
-
 // FIX: The API key must be handled via environment variables (`process.env.API_KEY`)
 // and not through a user-facing settings UI, as per the coding guidelines.
 // This hook's functionality is therefore removed. A stub is provided for compatibility.

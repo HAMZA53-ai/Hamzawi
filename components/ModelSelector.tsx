@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import type { Persona } from '../types';
 import { ChevronDownIcon, GeminiIcon, GptIcon, DeepseekIcon, ClaudeIcon, CodeIcon, TeacherIcon } from './IconComponents';

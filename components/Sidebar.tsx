@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrandLogo } from './BrandLogo';
 import { PlusIcon, ChatIcon, ImageIcon, TrashIcon, VideoIcon } from './IconComponents';
@@ -59,8 +58,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewChat, sessions, activeSes
             fixed md:relative top-0 bottom-0 z-40 
             transition-all duration-300 ease-in-out
             ${isOpen 
-                ? 'w-64 p-3 border-[var(--border-color)] translate-x-0' 
-                : 'w-0 p-0 border-transparent translate-x-full md:translate-x-0'
+                ? 'w-64 p-3 border-[var(--border-color)]' 
+                : 'w-0 p-0 border-transparent -translate-x-full'
             }
         `}>
              <div className="flex flex-col flex-1 overflow-hidden min-w-[14.5rem]">

@@ -20,7 +20,9 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
 export const useChat = (
   activeSession: ChatSession | null, 
   onUpdateSession: (updater: (prev: ChatSession) => ChatSession) => void,
-  appMode: AppMode
+  appMode: AppMode,
+  userName: string | null,
+  notificationsEnabled: boolean
 ) => {
   const [loadingState, setLoadingState] = useState<LoadingState>('IDLE');
   const [error, setError] = useState<string | null>(null);
@@ -32,11 +34,11 @@ export const useChat = (
         role: m.role,
         parts: m.parts.map(p => ({ text: p.text || '' }))
       }));
-      chatRef.current = createChatSession(activeSession.persona, history);
+      chatRef.current = createChatSession(activeSession.persona, userName, history);
     } else {
       chatRef.current = null;
     }
-  }, [activeSession]);
+  }, [activeSession, userName]);
   
   const addMessagePair = (userMessageParts: MessagePart[]) => {
     if (!activeSession) return { userMessage: null, modelMessageId: null };
@@ -131,7 +133,6 @@ export const useChat = (
           }
 
           const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-          // FIX: Per guidelines, using process.env.API_KEY to fetch video content.
           if (downloadLink && process.env.API_KEY) {
             const videoResponse = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
             const videoBlob = await videoResponse.blob();
@@ -141,7 +142,14 @@ export const useChat = (
               ...prev,
               messages: prev.messages.map(m => m.id === modelMessageId ? { ...m, parts: [{ video: videoBase64, videoMimeType: videoBlob.type }] } : m)
             }));
-            setLoadingState('IDLE'); // End loading here
+            setLoadingState('IDLE');
+
+            if (notificationsEnabled && document.visibilityState === 'hidden' && Notification.permission === 'granted') {
+              new Notification('فيديوك جاهز!', {
+                body: 'الفيديو الذي طلبته تم إنشاؤه بنجاح.',
+                icon: '/logo.svg' 
+              });
+            }
           } else {
             throw new Error("Video generation finished but no URI was found.");
           }
@@ -159,7 +167,7 @@ export const useChat = (
           }));
       }
     };
-    setTimeout(poll, 5000); // Start polling after 5s
+    setTimeout(poll, 5000);
   };
 
 
@@ -184,7 +192,6 @@ export const useChat = (
           break;
         case 'VIDEO_GEN':
           await handleVideoGeneration(prompt, image, modelMessageId);
-          // Don't set loading to IDLE here, polling will do it.
           return; 
         case 'CHAT':
         default:
@@ -204,7 +211,7 @@ export const useChat = (
           setLoadingState('IDLE');
        }
     }
-  }, [loadingState, activeSession, onUpdateSession, appMode]);
+  }, [loadingState, activeSession, onUpdateSession, appMode, notificationsEnabled]);
 
   return { loadingState, error, sendMessage };
 };

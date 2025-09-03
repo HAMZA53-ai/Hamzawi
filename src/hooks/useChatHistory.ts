@@ -97,6 +97,20 @@ export const useChatHistory = () => {
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
+  const clearActiveSessionMessages = useCallback(() => {
+    if (!activeSessionId) return;
+    setSessions(prevSessions => {
+        const updatedSessions = prevSessions.map(s => {
+            if (s.id === activeSessionId) {
+                return { ...s, messages: [] };
+            }
+            return s;
+        });
+        saveSessionsToStorage(updatedSessions);
+        return updatedSessions;
+    });
+  }, [activeSessionId]);
+
   const activeSession = sessions.find(s => s.id === activeSessionId) || null;
 
   return {
@@ -108,5 +122,6 @@ export const useChatHistory = () => {
     deleteSession,
     updateSession,
     clearAllHistory,
+    clearActiveSessionMessages,
   };
 };

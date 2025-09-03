@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
 import { MessageHistory } from './components/MessageHistory';
@@ -20,17 +19,28 @@ const App: React.FC = () => {
     setActiveSessionId, 
     createNewSession, 
     deleteSession,
-    updateSession 
+    updateSession,
+    clearActiveSessionMessages
   } = useChatHistory();
   
   const [appMode, setAppMode] = useState<AppMode>('CHAT');
   const { loadingState, error, sendMessage } = useChat(activeSession, updateSession, appMode);
   
   const [persona, setPersona] = useState<Persona>('GEMINI');
-  const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(true);
+  const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSearchEnabled, setIsSearchEnabled] = useState(false);
   const [isDeepThinkingEnabled, setIsDeepThinkingEnabled] = useState(false);
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    // Only show welcome modal if there's no chat history at all.
+    if (sessions.length === 0) {
+      setIsWelcomeModalOpen(true);
+    } else {
+      setIsWelcomeModalOpen(false);
+    }
+  }, [sessions]);
   
   useEffect(() => {
     if (activeSession) {
@@ -39,7 +49,6 @@ const App: React.FC = () => {
   }, [activeSession]);
 
   useEffect(() => {
-    // Dynamically update the body class for theming to fix the black screen issue.
     const themeClass = `theme-${persona.toLowerCase().replace('_', '-')}`;
     const themes = ['gemini', 'gpt', 'deepseek', 'claude', 'hamzawy-code', 'teacher'].map(t => `theme-${t}`);
     document.body.classList.remove(...themes);
@@ -82,6 +91,17 @@ const App: React.FC = () => {
     }
   }, [setActiveSessionId]);
   
+  const handleClearChat = () => {
+    if (activeSession && activeSession.messages.length > 0) {
+        setIsClearConfirmOpen(true);
+    }
+  };
+
+  const confirmClearChat = () => {
+      clearActiveSessionMessages();
+      setIsClearConfirmOpen(false);
+  };
+
   const renderContent = () => {
     return (
       <div className="flex flex-col flex-1 h-full overflow-hidden">
@@ -116,9 +136,32 @@ const App: React.FC = () => {
   };
   
   return (
-    <div className={`h-screen text-[var(--text-color)] transition-colors duration-500 flex`}>
+    <div className={`h-screen text-[var(--text-color)] transition-colors duration-500 flex font-sans`}>
       {isWelcomeModalOpen && <WelcomeModal onClose={handleWelcomeModalClose} />}
       
+      {isClearConfirmOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 border border-gray-700 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+                <h2 className="text-lg font-bold text-white mb-2">تأكيد</h2>
+                <p className="text-gray-400 mb-6">هل أنت متأكد أنك تريد مسح جميع الرسائل في هذه المحادثة؟ لا يمكن التراجع عن هذا الإجراء.</p>
+                <div className="flex justify-end gap-3">
+                    <button
+                        onClick={() => setIsClearConfirmOpen(false)}
+                        className="px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-500 transition-colors"
+                    >
+                        إلغاء
+                    </button>
+                    <button
+                        onClick={confirmClearChat}
+                        className="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                        مسح المحادثة
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
+
       <Sidebar 
         onNewChat={handleNewChat}
         sessions={sessions}
@@ -137,6 +180,7 @@ const App: React.FC = () => {
             currentPersona={persona}
             onPersonaChange={handlePersonaChange}
             onToggleSidebar={toggleSidebar}
+            onClearChat={handleClearChat}
         />
         {renderContent()}
       </main>

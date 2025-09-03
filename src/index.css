@@ -82,6 +82,24 @@ body {
   --bubble-radius-user: 1.5rem 1.5rem 0.25rem 1.5rem;
   --bubble-radius-model: 1.5rem 1.5rem 1.5rem 0.25rem;
 }
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+
 .blinking-cursor {
   display: inline-block;
   width: 0.5em;
@@ -95,6 +113,16 @@ body {
   from, to { opacity: 1; }
   50% { opacity: 0; }
 }
+
+@keyframes message-enter-animation {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message-enter {
+  animation: message-enter-animation 0.3s ease-out forwards;
+}
+
 /* Markdown styles */
 .prose { color: inherit; }
 .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 { color: inherit; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: 700; }

@@ -62,15 +62,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
     return (
         <aside className={`
-            bg-gray-900/70 backdrop-blur-lg border-s h-screen flex flex-col flex-shrink-0 overflow-hidden
-            fixed md:relative top-0 bottom-0 z-40 
-            transition-all duration-300 ease-in-out
+            bg-gray-900/70 backdrop-blur-lg border-e h-dvh flex flex-col flex-shrink-0 overflow-hidden
+            fixed md:relative top-0 bottom-0 start-0 z-40 
+            transition-transform duration-300 ease-in-out
+            w-64 border-[var(--border-color)]
             ${isOpen 
-                ? 'w-64 p-3 border-[var(--border-color)]' 
-                : 'w-0 p-0 border-transparent -translate-x-full'
+                ? 'translate-x-0' 
+                : 'translate-x-full md:translate-x-0 md:w-0 md:border-transparent'
             }
         `}>
-             <div className="flex flex-col flex-1 overflow-hidden min-w-[14.5rem]">
+             <div className={`flex flex-col flex-1 overflow-hidden min-w-[14.5rem] p-3 ${isOpen ? '' : 'md:hidden'}`}>
                 <div className="flex items-center gap-3 px-2 pb-3 mb-3 border-b border-[var(--border-color)] flex-shrink-0">
                     <BrandLogo className="w-9 h-9" />
                     <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[var(--gradient-from)] to-[var(--gradient-to)] whitespace-nowrap">

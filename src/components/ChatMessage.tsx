@@ -297,7 +297,7 @@ export const ChatMessageComponent: React.FC<{ message: ChatMessage; isLastMessag
 
 
   return (
-    <div className={`flex items-end gap-3 my-4 group ${!isUserModel ? 'flex-row-reverse' : ''}`}>
+    <div className={`flex items-start gap-3 my-4 group message-enter ${!isUserModel ? 'flex-row-reverse' : ''}`}>
       <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center self-start mt-1 ${isUserModel ? 'bg-gray-700' : 'bg-[var(--user-message-bg)]'}`}>
         {isUserModel ? <BrandLogo className="w-5 h-5" /> : <UserIcon className="w-5 h-5 text-white" />}
       </div>

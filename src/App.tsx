@@ -32,6 +32,8 @@ const App: React.FC = () => {
   } = useUserSettings();
   
   const [appMode, setAppMode] = useState<AppMode>('CHAT');
+  const [prompt, setPrompt] = useState('');
+  
   const { loadingState, error, sendMessage } = useChat(
     activeSession, 
     updateSession, 
@@ -41,19 +43,20 @@ const App: React.FC = () => {
   );
   
   const [persona, setPersona] = useState<Persona>('GEMINI');
-  const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(true);
+  const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSearchEnabled, setIsSearchEnabled] = useState(false);
   const [isDeepThinkingEnabled, setIsDeepThinkingEnabled] = useState(false);
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
 
   useEffect(() => {
-    if (sessions.length === 0) {
+    // Show welcome modal if no sessions exist AND no user name is set.
+    if (sessions.length === 0 && !userName) {
       setIsWelcomeModalOpen(true);
     } else {
       setIsWelcomeModalOpen(false);
     }
-  }, [sessions]);
+  }, [sessions, userName]);
   
   useEffect(() => {
     if (activeSession) {
@@ -74,7 +77,15 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handleWelcomeModalClose = () => {
+  const handleSendMessage = (currentPrompt: string, image?: { data: string; mimeType: string; }) => {
+    sendMessage(currentPrompt, image, isSearchEnabled, isDeepThinkingEnabled);
+    setPrompt('');
+  }
+
+  const handleWelcomeModalClose = (name: string) => {
+    if (name.trim()) {
+      setUserName(name.trim());
+    }
     setIsWelcomeModalOpen(false);
     if (sessions.length === 0) {
       createNewSession(persona);
@@ -115,46 +126,12 @@ const App: React.FC = () => {
       setIsClearConfirmOpen(false);
   };
   
-  const renderContent = () => {
-    return (
-      <div className="flex flex-col flex-1 h-full overflow-hidden">
-        <MessageHistory 
-          messages={activeSession?.messages ?? []} 
-          loadingState={loadingState} 
-          mode={appMode}
-          persona={persona}
-        />
-        <div className="w-full max-w-4xl mx-auto p-4">
-          {error && (
-            <div className="bg-red-500/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-4 text-center">
-              <p><strong>حدث خطأ:</strong> {error}</p>
-            </div>
-          )}
-          {appMode === 'CHAT' && (
-            <ChatToolbar 
-              isSearchEnabled={isSearchEnabled}
-              onToggleSearch={() => setIsSearchEnabled(p => !p)}
-              isDeepThinkingEnabled={isDeepThinkingEnabled}
-              onToggleDeepThinking={() => setIsDeepThinkingEnabled(p => !p)}
-            />
-          )}
-          <ChatInput 
-            onSend={(prompt, image) => sendMessage(prompt, image, isSearchEnabled, isDeepThinkingEnabled)} 
-            loading={loadingState !== 'IDLE'}
-            mode={appMode}
-          />
-        </div>
-      </div>
-    );
-  };
-  
   return (
-    <div className={`h-screen text-[var(--text-color)] transition-colors duration-500 flex font-sans`}>
+    <div className={`h-dvh text-[var(--text-color)] transition-colors duration-500 flex font-sans bg-[#030712]`}>
       {isWelcomeModalOpen && (
         <WelcomeModal 
           onClose={handleWelcomeModalClose} 
-          userName={userName}
-          onNameChange={setUserName}
+          initialName={userName}
         />
       )}
 
@@ -198,14 +175,44 @@ const App: React.FC = () => {
       
       {isSidebarOpen && <div onClick={toggleSidebar} className="fixed inset-0 bg-black/50 z-30 md:hidden"></div>}
 
-      <main className="flex-1 flex flex-col h-screen overflow-hidden transition-all duration-300 ease-in-out">
+      <main className="flex-1 flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out">
         <Header 
             currentPersona={persona}
             onPersonaChange={handlePersonaChange}
             onToggleSidebar={toggleSidebar}
             onClearChat={handleClearChat}
         />
-        {renderContent()}
+        <div className="flex flex-col flex-1 h-full overflow-hidden">
+          <MessageHistory 
+            messages={activeSession?.messages ?? []} 
+            loadingState={loadingState} 
+            mode={appMode}
+            persona={persona}
+            onSuggestionClick={(suggestion) => setPrompt(suggestion)}
+          />
+          <div className="w-full max-w-4xl mx-auto p-4 flex-shrink-0">
+            {error && (
+              <div className="bg-red-500/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-4 text-center">
+                <p><strong>حدث خطأ:</strong> {error}</p>
+              </div>
+            )}
+            {appMode === 'CHAT' && (
+              <ChatToolbar 
+                isSearchEnabled={isSearchEnabled}
+                onToggleSearch={() => setIsSearchEnabled(p => !p)}
+                isDeepThinkingEnabled={isDeepThinkingEnabled}
+                onToggleDeepThinking={() => setIsDeepThinkingEnabled(p => !p)}
+              />
+            )}
+            <ChatInput 
+              prompt={prompt}
+              onPromptChange={setPrompt}
+              onSend={handleSendMessage} 
+              loading={loadingState !== 'IDLE'}
+              mode={appMode}
+            />
+          </div>
+        </div>
       </main>
     </div>
   );

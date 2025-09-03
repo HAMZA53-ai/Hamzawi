@@ -3,13 +3,14 @@ import type { ChatMessage, LoadingState, Persona } from '../types';
 import type { AppMode } from '../App';
 import { ChatMessageComponent } from './ChatMessage';
 import { BrandLogo } from './BrandLogo';
-import { ImageIcon, VideoIcon } from './IconComponents';
+import { ImageIcon, VideoIcon, SparklesIcon, CodeIcon } from './IconComponents';
 
 interface MessageHistoryProps {
   messages: ChatMessage[];
   loadingState: LoadingState;
   mode: AppMode;
   persona: Persona;
+  onSuggestionClick: (suggestion: string) => void;
 }
 
 const TypingIndicator: React.FC<{ mode: AppMode }> = ({ mode }) => {
@@ -30,7 +31,7 @@ const TypingIndicator: React.FC<{ mode: AppMode }> = ({ mode }) => {
     const { icon, text } = messages[mode];
 
     return (
-        <div className="flex items-center space-x-3 py-6">
+        <div className="flex items-start gap-3 py-6">
             <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-gray-700 animate-pulse">
                 {icon}
             </div>
@@ -46,8 +47,7 @@ const TypingIndicator: React.FC<{ mode: AppMode }> = ({ mode }) => {
 };
 
 
-const WelcomeMessage: React.FC<{ mode: AppMode, persona: Persona }> = ({ mode, persona }) => {
-    // FIX: Added missing personas to satisfy the Record<Persona, string> type.
+const WelcomeMessage: React.FC<{ mode: AppMode, persona: Persona, onSuggestionClick: (suggestion: string) => void }> = ({ mode, persona, onSuggestionClick }) => {
     const personaNames: Record<Persona, string> = {
         GEMINI: 'حمزاوي 5.0',
         GPT: 'حمزاوي 4.5',
@@ -55,6 +55,21 @@ const WelcomeMessage: React.FC<{ mode: AppMode, persona: Persona }> = ({ mode, p
         CLAUDE: 'حمزاوي 3.5',
         HAMZAWY_CODE: 'حمزاوي كود',
         TEACHER: 'المعلم',
+    };
+
+    const suggestions: Partial<Record<Persona, {icon: React.ReactNode, text: string}[]>> = {
+      'GEMINI': [
+        { icon: <SparklesIcon className="w-4 h-4"/>, text: "اكتب قصة قصيرة عن مستكشف فضاء"},
+        { icon: <SparklesIcon className="w-4 h-4"/>, text: "ما هي أفضل طريقة لتعلم لغة جديدة؟"},
+      ],
+      'HAMZAWY_CODE': [
+        { icon: <CodeIcon className="w-4 h-4"/>, text: "أنشئ صفحة هبوط بسيطة لمنتج جديد"},
+        { icon: <CodeIcon className="w-4 h-4"/>, text: "اكتب كود لنموذج تسجيل دخول بتصميم عصري"},
+      ],
+       'TEACHER': [
+        { icon: <SparklesIcon className="w-4 h-4"/>, text: "اشرح لي نظرية النسبية لأينشتاين ببساطة"},
+        { icon: <SparklesIcon className="w-4 h-4"/>, text: "اختبرني في أساسيات الجبر"},
+      ],
     };
 
     const messages = {
@@ -72,6 +87,7 @@ const WelcomeMessage: React.FC<{ mode: AppMode, persona: Persona }> = ({ mode, p
         },
     }
     const current = messages[mode];
+    const currentSuggestions = suggestions[persona] ?? [];
 
     return (
         <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 p-4">
@@ -79,14 +95,27 @@ const WelcomeMessage: React.FC<{ mode: AppMode, persona: Persona }> = ({ mode, p
                 <BrandLogo className="w-16 h-16" />
             </div>
             <h2 className="text-2xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-[var(--gradient-from)] to-[var(--gradient-to)]">{current.title}</h2>
-            <p>{current.subtitle}</p>
+            <p className="mb-8">{current.subtitle}</p>
+
+            {currentSuggestions.length > 0 && mode === 'CHAT' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl w-full">
+                {currentSuggestions.map((suggestion, index) => (
+                   <button 
+                      key={index}
+                      onClick={() => onSuggestionClick(suggestion.text)}
+                      className="text-start p-3 bg-gray-800/50 hover:bg-gray-800 border border-gray-700/50 rounded-lg transition-colors text-sm text-gray-300"
+                   >
+                     <p>{suggestion.text}</p>
+                   </button>
+                ))}
+              </div>
+            )}
         </div>
     );
 };
 
 
-export const MessageHistory: React.FC<MessageHistoryProps> = ({ messages, loadingState, mode, persona }) => {
-  const scrollRef = useRef<HTMLDivElement>(null);
+export const MessageHistory: React.FC<MessageHistoryProps> = ({ messages, loadingState, mode, persona, onSuggestionClick }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -97,9 +126,9 @@ export const MessageHistory: React.FC<MessageHistoryProps> = ({ messages, loadin
 
   return (
     <div className="flex-1 overflow-y-auto p-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto h-full">
         {messages.length === 0 && loadingState === 'IDLE' && (
-          <WelcomeMessage mode={mode} persona={persona} />
+          <WelcomeMessage mode={mode} persona={persona} onSuggestionClick={onSuggestionClick}/>
         )}
         {messages.map((msg, index) => (
           <ChatMessageComponent 

@@ -4,6 +4,8 @@ import type { AppMode } from '../App';
 import { SendIcon, PaperclipIcon, XIcon } from './IconComponents';
 
 interface ChatInputProps {
+  prompt: string;
+  onPromptChange: (prompt: string) => void;
   onSend: (prompt: string, image?: ImageFile) => void;
   loading: boolean;
   mode: AppMode;
@@ -35,8 +37,7 @@ const getPlaceholderText = (mode: AppMode) => {
     }
 }
 
-export const ChatInput: React.FC<ChatInputProps> = ({ onSend, loading, mode }) => {
-  const [prompt, setPrompt] = useState('');
+export const ChatInput: React.FC<ChatInputProps> = ({ prompt, onPromptChange, onSend, loading, mode }) => {
   const [image, setImage] = useState<ImageFile | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -52,7 +53,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSend, loading, mode }) =
   const handleSend = useCallback(() => {
     if ((prompt.trim() || image) && !loading) {
       onSend(prompt.trim(), image || undefined);
-      setPrompt('');
+      // Parent component will clear the prompt by passing an empty string
       setImage(null);
       setImagePreview(null);
       if (fileInputRef.current) {
@@ -117,7 +118,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSend, loading, mode }) =
         <textarea
           ref={textareaRef}
           value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
+          onChange={(e) => onPromptChange(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();

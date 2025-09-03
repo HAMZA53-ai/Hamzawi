@@ -12,7 +12,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ currentPersona, onPersonaChange, onToggleSidebar, onClearChat }) => {
   return (
-    <header className="bg-gray-900/50 backdrop-blur-lg border-b border-[var(--border-color)] p-3 sticky top-0 z-20">
+    <header className="bg-gray-900/50 backdrop-blur-lg border-b border-[var(--border-color)] p-3 sticky top-0 z-20 flex-shrink-0">
       <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
         <button 
             onClick={onToggleSidebar}

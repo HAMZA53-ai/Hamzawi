@@ -74,7 +74,7 @@ export const UserSettingsPopover: React.FC<UserSettingsPopoverProps> = ({ userNa
             </button>
 
             {isOpen && (
-                <div className="absolute bottom-full mb-2 right-0 w-64 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl z-50 p-4">
+                <div className="absolute bottom-full mb-2 end-0 w-64 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl z-50 p-4">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="font-bold text-white">الإعدادات</h3>
                         <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-white">

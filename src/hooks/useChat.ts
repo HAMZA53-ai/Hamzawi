@@ -147,7 +147,7 @@ export const useChat = (
             if (notificationsEnabled && document.visibilityState === 'hidden' && Notification.permission === 'granted') {
               new Notification('فيديوك جاهز!', {
                 body: 'الفيديو الذي طلبته تم إنشاؤه بنجاح.',
-                icon: '/logo.svg' 
+                // icon: '/logo.svg' // Optional: if you have a logo in public folder
               });
             }
           } else {
@@ -211,7 +211,7 @@ export const useChat = (
           setLoadingState('IDLE');
        }
     }
-  }, [loadingState, activeSession, onUpdateSession, appMode, notificationsEnabled]);
+  }, [loadingState, activeSession, onUpdateSession, appMode, notificationsEnabled, userName]);
 
   return { loadingState, error, sendMessage };
 };

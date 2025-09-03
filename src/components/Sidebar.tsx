@@ -62,13 +62,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
     return (
         <aside className={`
-            bg-gray-900/70 backdrop-blur-lg border-e h-dvh flex flex-col flex-shrink-0 overflow-hidden
-            fixed md:relative top-0 bottom-0 start-0 z-40 
+            bg-gray-900/70 backdrop-blur-lg border-s h-dvh flex flex-col flex-shrink-0 overflow-hidden
+            fixed md:relative top-0 bottom-0 z-40 
             transition-transform duration-300 ease-in-out
             w-64 border-[var(--border-color)]
             ${isOpen 
                 ? 'translate-x-0' 
-                : 'translate-x-full md:translate-x-0 md:w-0 md:border-transparent'
+                : '-translate-x-full md:translate-x-0 md:w-0 md:border-transparent'
             }
         `}>
              <div className={`flex flex-col flex-1 overflow-hidden min-w-[14.5rem] p-3 ${isOpen ? '' : 'md:hidden'}`}>

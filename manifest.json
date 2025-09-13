@@ -1,0 +1,23 @@
+{
+  "name": "شات حمزاوي",
+  "short_name": "شات حمزاوي",
+  "description": "شات حمزاوي - مساعدك الذكي متعدد الشخصيات. استكشف قدرات الذكاء الاصطناعي المتقدمة.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#030712",
+  "theme_color": "#030712",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/3cqPzR1/image.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.ibb.co/3cqPzR1/image.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

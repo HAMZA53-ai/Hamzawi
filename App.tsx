@@ -1,17 +1,60 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Header } from './components/Header';
 import { MessageHistory } from './components/MessageHistory';
 import { ChatInput } from './components/ChatInput';
-import { ChatToolbar } from './components/ChatToolbar';
 import { WelcomeModal } from './components/WelcomeModal';
 import { Sidebar } from './components/Sidebar';
 import { useChat } from './hooks/useChat';
 import { useChatHistory } from './hooks/useChatHistory';
-import type { Persona } from './types';
+import { useSettings } from './hooks/useSettings';
+import { usePersonas } from './hooks/usePersonas';
+import type { PersonaId, MediaFile, PersonaDetails, NotificationType } from './types';
+import { AnimatedBackground } from './components/AnimatedBackground';
+import { handleNewUserOnboarding } from './services/onboardingService';
+import { SettingsModal } from './components/SettingsModal';
+import { PersonaEditorModal } from './components/PersonaEditorModal';
+import { Notification } from './components/Notification';
+import { PreWelcomeScreen } from './components/PreWelcomeScreen';
+
 
 export type AppMode = 'CHAT' | 'IMAGE_GEN' | 'VIDEO_GEN';
 
+const suggestedQuestions = [
+    "ما هي أفضل طريقة لتعلم برمجة الويب؟",
+    "اشرح لي مفهوم الثقوب السوداء بطريقة مبسطة.",
+    "اكتب لي قصة قصيرة عن روبوت يكتشف المشاعر.",
+    "ما هي عاصمة أستراليا؟",
+];
+
+const hexToRgb = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
+};
+
+
 const App: React.FC = () => {
+  const [preWelcomeDone, setPreWelcomeDone] = useState(false);
+  
+  const { 
+    apiKey,
+    userName, 
+    setUserName, 
+    isLoading: isLoadingSettings,
+    saveFreeApiKey
+  } = useSettings();
+
+  const {
+    personas,
+    addPersona,
+    updatePersona,
+    deletePersona,
+    getPersonaDetails,
+  } = usePersonas();
+
   const { 
     sessions, 
     activeSession, 
@@ -20,148 +63,265 @@ const App: React.FC = () => {
     createNewSession, 
     deleteSession,
     updateSession,
-    clearActiveSessionMessages
-  } = useChatHistory();
+    isLoadingHistory,
+  } = useChatHistory(apiKey);
+
+  const [activePersonaId, setActivePersonaId] = useState<PersonaId>('GEMINI');
   
+  const activePersona = getPersonaDetails(activeSession?.personaId || activePersonaId);
+
   const [appMode, setAppMode] = useState<AppMode>('CHAT');
-  const { loadingState, error, sendMessage } = useChat(activeSession, updateSession, appMode);
+  const { loadingState, error, sendMessage } = useChat(apiKey, activeSession, activePersona, updateSession, appMode, userName);
   
-  const [persona, setPersona] = useState<Persona>('GEMINI');
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSearchEnabled, setIsSearchEnabled] = useState(false);
-  const [isDeepThinkingEnabled, setIsDeepThinkingEnabled] = useState(false);
-  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
+  const [isThinkingEnabled, setIsThinkingEnabled] = useState(true);
+  const [isLearningModeEnabled, setIsLearningModeEnabled] = useState(false);
+  const [isWebsiteCreationModeEnabled, setIsWebsiteCreationModeEnabled] = useState(false);
+  const [prompt, setPrompt] = useState('');
+  const [gradientColors, setGradientColors] = useState<[string, string]>(['#a78bfa', '#ec4899']);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [editingPersona, setEditingPersona] = useState<PersonaDetails | null>(null);
+  const [notifications, setNotifications] = useState<NotificationType[]>([]);
+
+
+  const appRef = useRef<HTMLDivElement>(null);
+  const customStyleRef = useRef<HTMLStyleElement | null>(null);
+  const notificationTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
-    // Only show welcome modal if there's no chat history at all.
-    if (sessions.length === 0) {
+    if (!isLoadingHistory && !isLoadingSettings && !userName) {
       setIsWelcomeModalOpen(true);
-    } else {
-      setIsWelcomeModalOpen(false);
     }
-  }, [sessions]);
-  
+  }, [isLoadingHistory, isLoadingSettings, userName]);
+
+  useEffect(() => {
+    handleNewUserOnboarding({
+      sessions,
+      userName,
+      isLoadingHistory,
+      isLoadingSettings,
+      createNewSession,
+      defaultPersonaId: activePersonaId,
+    });
+  }, [sessions, userName, isLoadingHistory, isLoadingSettings, createNewSession, activePersonaId]);
+
   useEffect(() => {
     if (activeSession) {
-      setPersona(activeSession.persona);
+      setActivePersonaId(activeSession.personaId);
     }
   }, [activeSession]);
 
   useEffect(() => {
-    const themeClass = `theme-${persona.toLowerCase().replace('_', '-')}`;
-    const themes = ['gemini', 'gpt', 'deepseek', 'claude', 'hamzawy-code', 'teacher'].map(t => `theme-${t}`);
-    document.body.classList.remove(...themes);
-    document.body.classList.add(themeClass);
-  }, [persona]);
-
-  useEffect(() => {
     if (window.innerWidth < 768) {
       setIsSidebarOpen(false);
     }
+    customStyleRef.current = document.createElement('style');
+    document.head.appendChild(customStyleRef.current);
+    
+    // Cleanup timeouts on unmount
+    return () => {
+        if (customStyleRef.current) {
+            document.head.removeChild(customStyleRef.current);
+        }
+        notificationTimeouts.current.forEach(clearTimeout);
+    };
   }, []);
+  
+  useEffect(() => {
+    if (!activePersona) return;
+    
+    // Reset website creation mode if persona is not HAMZAWY_CODE
+    if (activePersona.id !== 'HAMZAWY_CODE') {
+        setIsWebsiteCreationModeEnabled(false);
+    }
 
-  const handleWelcomeModalClose = () => {
+    if (activePersona.isCustom && activePersona.themeColor && customStyleRef.current) {
+        const color = activePersona.themeColor;
+        const rgb = hexToRgb(color);
+        const rgba = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}` : 'rgba(139, 92, 246';
+        
+        const gradientTo = `${rgba}, 0.7)`;
+        const hoverColor = `${rgba}, 0.9)`;
+        const bgGradientColor = `${rgba}, 0.15)`;
+        
+        customStyleRef.current.innerHTML = `
+            .theme-custom {
+                --gradient-from: ${color};
+                --gradient-to: ${gradientTo};
+                --accent-color: ${color};
+                --accent-hover-color: ${hoverColor};
+                --user-message-bg: ${color};
+                --bg-gradient: radial-gradient(circle at 100% 0%, ${bgGradientColor}, transparent 40%);
+            }
+        `;
+    }
+
+    if (appRef.current) {
+        // Use a short timeout to ensure CSS variables from the new theme class have been applied
+        setTimeout(() => {
+            if (appRef.current) {
+                const styles = getComputedStyle(appRef.current);
+                const from = styles.getPropertyValue('--gradient-from').trim();
+                const to = styles.getPropertyValue('--gradient-to').trim();
+                if(from && to) {
+                    setGradientColors([from, to]);
+                }
+            }
+        }, 50);
+    }
+  }, [activePersona]);
+
+    const addNotification = useCallback((message: string) => {
+        setNotifications(prev => [...prev, { id: Date.now(), message }]);
+    }, []);
+
+    const removeNotification = useCallback((id: number) => {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+    }, []);
+
+  const handleWelcomeModalClose = (name: string, action?: 'default' | 'activate_free') => {
     setIsWelcomeModalOpen(false);
-    if (sessions.length === 0) {
-      createNewSession(persona);
+    if (name) {
+        setUserName(name);
+        
+        if (action === 'activate_free') {
+            saveFreeApiKey();
+        }
+        
+        // Clear any previous timeouts before setting new ones
+        notificationTimeouts.current.forEach(clearTimeout);
+        notificationTimeouts.current = [];
+
+        const timeout1 = setTimeout(() => {
+            addNotification(`تلقي المبرمج حمزة محمد سعيد انك يا "${name}" تستخدم نماذج حمزاوي`);
+        }, 15000); // 15 seconds
+
+        const timeout2 = setTimeout(() => {
+            const time = new Date().toLocaleTimeString('ar-EG', { hour: 'numeric', minute: '2-digit' });
+            addNotification(`تم تحديث جميع نماذج حمزاوي في ${time} من المبرمج`);
+        }, 30000); // 30 seconds
+
+        notificationTimeouts.current.push(timeout1, timeout2);
     }
   };
 
-  const toggleSidebar = useCallback(() => {
-    setIsSidebarOpen(prev => !prev);
-  }, []);
+  const toggleSidebar = useCallback(() => setIsSidebarOpen(prev => !prev), []);
 
   const handleNewChat = useCallback(() => {
-    createNewSession(persona);
-    if (window.innerWidth < 768) {
-      setIsSidebarOpen(false);
-    }
-  }, [createNewSession, persona]);
+    createNewSession(activePersonaId);
+    if (window.innerWidth < 768) setIsSidebarOpen(false);
+  }, [createNewSession, activePersonaId]);
 
-  const handlePersonaChange = useCallback((newPersona: Persona) => {
-    setPersona(newPersona);
-    createNewSession(newPersona);
+  const handlePersonaChange = useCallback((newPersonaId: PersonaId) => {
+    setActivePersonaId(newPersonaId);
+    createNewSession(newPersonaId);
   }, [createNewSession]);
+  
+  const handleSetAppMode = (mode: AppMode) => {
+    setAppMode(mode);
+  };
 
   const handleSelectChat = useCallback((sessionId: string) => {
     setActiveSessionId(sessionId);
-     if (window.innerWidth < 768) {
-      setIsSidebarOpen(false);
-    }
+     if (window.innerWidth < 768) setIsSidebarOpen(false);
   }, [setActiveSessionId]);
   
-  const handleClearChat = () => {
-    if (activeSession && activeSession.messages.length > 0) {
-        setIsClearConfirmOpen(true);
+  const handleSelectQuestion = useCallback((question: string) => {
+    setPrompt(question);
+  }, []);
+  
+  const handleSend = (promptToSend: string, media?: MediaFile) => {
+    sendMessage(promptToSend, media, isSearchEnabled, isThinkingEnabled, isLearningModeEnabled, isWebsiteCreationModeEnabled);
+    setPrompt('');
+  };
+
+  const handleSavePersona = (personaToSave: PersonaDetails) => {
+    if (editingPersona && editingPersona.id === personaToSave.id) {
+        updatePersona(personaToSave.id, personaToSave);
+    } else {
+        addPersona(personaToSave);
+    }
+    setEditingPersona(null);
+  };
+
+  const handleEditPersona = (personaId: PersonaId) => {
+    const personaToEdit = getPersonaDetails(personaId);
+    if (personaToEdit && personaToEdit.isCustom) {
+        setEditingPersona(personaToEdit);
     }
   };
 
-  const confirmClearChat = () => {
-      clearActiveSessionMessages();
-      setIsClearConfirmOpen(false);
+  const handleDeletePersona = (personaId: PersonaId) => {
+    if (window.confirm('هل أنت متأكد من حذف هذه الشخصية؟')) {
+        deletePersona(personaId);
+        if (activePersonaId === personaId) {
+            setActivePersonaId('GEMINI'); // Revert to default
+        }
+    }
   };
 
-  const renderContent = () => {
+  if (!preWelcomeDone) {
+    return <PreWelcomeScreen onStartRegistration={() => setPreWelcomeDone(true)} />;
+  }
+  
+  if (!activePersona) {
+    return null; // Or a loading indicator
+  }
+
+  const themeClass = activePersona.isCustom ? 'theme-custom' : activePersona.themeClass;
+  
+  const renderInputComponent = () => {
     return (
-      <div className="flex flex-col flex-1 h-full overflow-hidden">
-        <MessageHistory 
-          messages={activeSession?.messages ?? []} 
-          loadingState={loadingState} 
-          mode={appMode}
-          persona={persona}
-        />
-        <div className="w-full max-w-4xl mx-auto p-4">
-          {error && (
-            <div className="bg-red-500/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-4 text-center">
-              <p><strong>حدث خطأ:</strong> {error}</p>
-            </div>
-          )}
-          {appMode === 'CHAT' && (
-            <ChatToolbar 
-              isSearchEnabled={isSearchEnabled}
-              onToggleSearch={() => setIsSearchEnabled(p => !p)}
-              isDeepThinkingEnabled={isDeepThinkingEnabled}
-              onToggleDeepThinking={() => setIsDeepThinkingEnabled(p => !p)}
-            />
-          )}
-          <ChatInput 
-            onSend={(prompt, image) => sendMessage(prompt, image, isSearchEnabled, isDeepThinkingEnabled)} 
-            loading={loadingState !== 'IDLE'}
-            mode={appMode}
-          />
-        </div>
-      </div>
+      <ChatInput 
+        prompt={prompt}
+        onPromptChange={setPrompt}
+        onSend={handleSend} 
+        loading={loadingState !== 'IDLE'}
+        mode={appMode}
+        personas={personas}
+        activePersona={activePersona}
+        onPersonaChange={handlePersonaChange}
+        onEditPersona={handleEditPersona}
+        onDeletePersona={handleDeletePersona}
+        onCreatePersona={() => setEditingPersona({} as PersonaDetails)}
+        isSearchEnabled={isSearchEnabled}
+        onToggleSearch={() => setIsSearchEnabled(p => !p)}
+        isThinkingEnabled={isThinkingEnabled}
+        onToggleThinking={() => setIsThinkingEnabled(p => !p)}
+        isLearningModeEnabled={isLearningModeEnabled}
+        onToggleLearningMode={() => setIsLearningModeEnabled(p => !p)}
+        isWebsiteCreationModeEnabled={isWebsiteCreationModeEnabled}
+        onToggleWebsiteCreationMode={() => setIsWebsiteCreationModeEnabled(p => !p)}
+      />
     );
   };
-  
-  return (
-    <div className={`h-screen text-[var(--text-color)] transition-colors duration-500 flex font-sans`}>
-      {isWelcomeModalOpen && <WelcomeModal onClose={handleWelcomeModalClose} />}
-      
-      {isClearConfirmOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 border border-gray-700 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
-                <h2 className="text-lg font-bold text-white mb-2">تأكيد</h2>
-                <p className="text-gray-400 mb-6">هل أنت متأكد أنك تريد مسح جميع الرسائل في هذه المحادثة؟ لا يمكن التراجع عن هذا الإجراء.</p>
-                <div className="flex justify-end gap-3">
-                    <button
-                        onClick={() => setIsClearConfirmOpen(false)}
-                        className="px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-500 transition-colors"
-                    >
-                        إلغاء
-                    </button>
-                    <button
-                        onClick={confirmClearChat}
-                        className="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
-                    >
-                        مسح المحادثة
-                    </button>
-                </div>
-            </div>
-        </div>
-      )}
 
+  return (
+    <div ref={appRef} className={`${themeClass} h-screen bg-[var(--bg-color)] text-[var(--text-color)] transition-colors duration-500 flex`}>
+      <AnimatedBackground gradientColors={gradientColors} />
+      {isWelcomeModalOpen && <WelcomeModal onClose={handleWelcomeModalClose} />}
+      <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} />
+      {editingPersona !== null && (
+        <PersonaEditorModal 
+            isOpen={true} 
+            onClose={() => setEditingPersona(null)} 
+            onSave={handleSavePersona}
+            persona={editingPersona}
+        />
+      )}
+      
+      <div className="fixed top-5 end-5 z-50 space-y-3">
+        {notifications.map(notification => (
+            <Notification
+                key={notification.id}
+                message={notification.message}
+                onClose={() => removeNotification(notification.id)}
+            />
+        ))}
+      </div>
+      
       <Sidebar 
         onNewChat={handleNewChat}
         sessions={sessions}
@@ -170,19 +330,38 @@ const App: React.FC = () => {
         onDeleteChat={deleteSession}
         isOpen={isSidebarOpen}
         appMode={appMode}
-        onSetAppMode={setAppMode}
+        onSetAppMode={handleSetAppMode}
+        notifications={notifications}
+        onRemoveNotification={removeNotification}
+        onOpenSettings={() => setIsSettingsModalOpen(true)}
       />
       
       {isSidebarOpen && <div onClick={toggleSidebar} className="fixed inset-0 bg-black/50 z-30 md:hidden"></div>}
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden transition-all duration-300 ease-in-out">
         <Header 
-            currentPersona={persona}
-            onPersonaChange={handlePersonaChange}
+            activePersona={activePersona}
             onToggleSidebar={toggleSidebar}
-            onClearChat={handleClearChat}
         />
-        {renderContent()}
+        <div className="flex flex-col flex-1 h-full overflow-hidden">
+          <MessageHistory 
+            messages={activeSession?.messages ?? []} 
+            loadingState={loadingState} 
+            mode={appMode}
+            persona={activePersona}
+            userName={userName}
+            suggestedQuestions={suggestedQuestions}
+            onSelectQuestion={handleSelectQuestion}
+          />
+          <div className="w-full max-w-4xl mx-auto p-4">
+            {error && (
+              <div className="bg-red-500/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-4 text-center">
+                <p><strong>حدث خطأ:</strong> {error}</p>
+              </div>
+            )}
+            {renderInputComponent()}
+          </div>
+        </div>
       </main>
     </div>
   );
